@@ -3,7 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { gameManager } from './game/GameManager.js';
-import { ROLES } from './game/roles.js';
+import { ROLES, TEAMS } from './game/roles.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -483,35 +483,45 @@ import mongoose from 'mongoose';
 import User from './models/User.js';
 
 // Connexion MongoDB
-if (process.env.MONGODB_URI) {
-    mongoose.connect(process.env.MONGODB_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
+const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/loup-garou';
+mongoose.connect(mongoURI)
+    .then(async () => {
+        console.log('✅ Connecté à MongoDB');
+        // Seeder des données de test si vide
+        const count = await User.countDocuments();
+        if (count === 0) {
+            console.log('🌱 Seeding de données de test...');
+            await User.insertMany([
+                { name: 'AlphaWolf', score: 10, gamesPlayed: 5 },
+                { name: 'VillageElder', score: 5, gamesPlayed: 3 },
+                { name: 'RedHood', score: 8, gamesPlayed: 4 }
+            ]);
+            console.log('✨ Données de test insérées !');
+        }
     })
-        .then(() => console.log('✅ Connecté à MongoDB'))
-        .catch(err => console.error('❌ Erreur connexion MongoDB:', err));
-}
+    .catch(err => {
+        console.error('❌ Erreur connexion MongoDB:', err);
+        console.log('💡 Note: Assurez-vous que MongoDB tourne localement ou via Docker.');
+    });
 
 async function updateScores(players, winners, winningTeam) {
-    if (!process.env.MONGODB_URI) return;
-
     for (const player of players) {
         let points = 0;
 
         // Logique de points
-        if (winningTeam === 'LOUPS') {
-            if (player.role === 'loup-garou') {
+        if (winningTeam === TEAMS.LOUPS) {
+            if (player.role === ROLES.LOUP_GAROU.id) {
                 points = 2; // Victoire Loup
             } else {
                 points = -1; // Défaite Villageois
             }
-        } else if (winningTeam === 'VILLAGE') {
-            if (player.role !== 'loup-garou') {
+        } else if (winningTeam === TEAMS.VILLAGE) {
+            if (player.role !== ROLES.LOUP_GAROU.id) {
                 points = 1; // Victoire Villageois
             } else {
                 points = -1; // Défaite Loup
             }
-        } else if (winningTeam === 'AMOUREUX') {
+        } else if (winningTeam === TEAMS.AMOUREUX) {
             // Cas particulier, disons +2 pour les amoureux
             if (winners.includes(player.id)) points = 2;
             else points = -1;
@@ -568,15 +578,33 @@ function endGame(roomCode, winCondition) {
 
     game.status = 'ended';
 
+    // Calculer les points pour l'affichage immédiat
+    const playerResults = game.players.map(player => {
+        let points = 0;
+        const winningTeam = winCondition.winner;
+        const winners = winCondition.lovers || [];
+
+        if (winningTeam === TEAMS.LOUPS) {
+            points = (player.role === ROLES.LOUP_GAROU.id) ? 2 : -1;
+        } else if (winningTeam === TEAMS.VILLAGE) {
+            points = (player.role !== ROLES.LOUP_GAROU.id) ? 1 : -1;
+        } else if (winningTeam === TEAMS.AMOUREUX) {
+            points = winners.includes(player.id) ? 2 : -1;
+        }
+
+        return {
+            id: player.id,
+            name: player.name,
+            role: player.role,
+            alive: player.alive,
+            gain: points
+        };
+    });
+
     io.to(roomCode).emit('gameOver', {
         winner: winCondition.winner,
         lovers: winCondition.lovers || [],
-        players: game.players.map(p => ({
-            id: p.id,
-            name: p.name,
-            role: p.role,
-            alive: p.alive
-        }))
+        players: playerResults
     });
 
     console.log(`Partie ${roomCode} terminée, vainqueur: ${winCondition.winner}`);
@@ -601,7 +629,6 @@ app.get('/games', (req, res) => {
 });
 
 app.get('/leaderboard', async (req, res) => {
-    if (!process.env.MONGODB_URI) return res.json([]);
     try {
         const users = await User.find().sort({ score: -1 }).limit(10);
         res.json(users);

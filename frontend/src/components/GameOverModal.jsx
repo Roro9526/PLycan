@@ -56,7 +56,19 @@ function GameOverModal({ winner, players, lovers, onReturn }) {
                                     }}
                                 >
                                     <div style={{ fontSize: '2rem' }}>{roleInfo.emoji}</div>
-                                    <div style={{ fontWeight: 'bold' }}>{player.name}</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                        <div style={{ fontWeight: 'bold' }}>{player.name}</div>
+                                        <div style={{
+                                            background: player.gain >= 0 ? 'rgba(46, 213, 115, 0.2)' : 'rgba(255, 71, 87, 0.2)',
+                                            color: player.gain >= 0 ? 'var(--success)' : 'var(--danger)',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            fontSize: '0.8rem',
+                                            fontWeight: 'bold'
+                                        }}>
+                                            {player.gain >= 0 ? '+' : ''}{player.gain} pts
+                                        </div>
+                                    </div>
                                     <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                                         {roleInfo.name}
                                     </div>
