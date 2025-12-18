@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  postgres:
+    build: ./postgres
+    container_name: tp-postgres
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=ecommerce_db
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    networks:
+      - ecommerce-network
+
+  redis:
+    image: redis:alpine
+    container_name: tp-redis
+    networks:
+      - ecommerce-network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
+    container_name: tp-elastic
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elastic-data:/usr/share/elasticsearch/data
+    networks:
+      - ecommerce-network
+    mem_limit: 1g
+
+  flask:
+    build: ./flask
+    container_name: tp-flask
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+      - redis
+      - elasticsearch
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=ecommerce_db
+    networks:
+      - ecommerce-network
+
+  nginx:
+    build: ./nginx
+    container_name: tp-nginx
+    ports:
+      - "8080:80"
+    depends_on:
+      - flask
+    networks:
+      - ecommerce-network
+
+networks:
+  ecommerce-network:
+    driver: bridge
+
+volumes:
+  pg-data:
+  elastic-data:

@@ -1,0 +1,24 @@
+import { io } from 'socket.io-client';
+
+// Détecter l'URL du serveur en fonction de l'environnement
+const getServerUrl = () => {
+    // Si une variable d'environnement est définie, l'utiliser
+    if (import.meta.env.VITE_SERVER_URL) {
+        return import.meta.env.VITE_SERVER_URL;
+    }
+
+    // Sinon, utiliser le même hôte que le frontend mais sur le port 3001
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+    return `${protocol}//${hostname}:3001`;
+};
+
+const SERVER_URL = getServerUrl();
+
+console.log('Connecting to Socket.io server:', SERVER_URL);
+
+export const socket = io(SERVER_URL, {
+    autoConnect: false
+});
+
+export default socket;
