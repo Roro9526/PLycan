@@ -1,53 +1,54 @@
-# 🚢 Déploiement Loup-Garou sur Kubernetes
+# 🚢 Déploiement Loup-Garou sur Kubernetes (avec Ingress)
 
-Ce dossier contient tout le nécessaire pour déployer le projet sur un cluster Kubernetes (Minikube ou Docker Desktop).
+Ce dossier contient tout le nécessaire pour déployer le projet avec un routage avancé (Ingress).
 
 ## 📋 Pré-requis
 - **Docker Desktop** (avec Kubernetes activé) ou **Minikube**.
+- **Nginx Ingress Controller** doit être activé !
+  - *Docker Desktop* : Installé via Helm ou manifeste (voir doc officielle).
+  - *Minikube* : `minikube addons enable ingress`.
 - `kubectl` installé.
 
 ## 🚀 Étapes de déploiement
 
-### 1. Construire les images Docker
-Kubernetes a besoin d'images locales. Lancez ces commandes depuis la racine du projet :
-
+### 1. Construire les images
 ```powershell
-# Build du Backend
 docker build -t loup-garou-backend:latest ./backend
-
-# Build du Frontend
 docker build -t loup-garou-frontend:latest ./frontend
 ```
 
 ### 2. Appliquer les manifests
-Déployez les composants dans l'ordre suivant :
-
+Dans l'ordre :
 ```powershell
-# 1. Base de données (avec persistence)
+# 1. Base de données
 kubectl apply -f k8s/mongo-statefulset.yaml
 
-# 2. Backend (API)
-kubectl apply -f k8s/backend-deployment.yaml
+# 2. Services (Réseau interne)
+kubectl apply -f k8s/services.yaml
 
-# 3. Frontend (Web UI)
+# 3. Applications (Backend & Frontend)
+kubectl apply -f k8s/backend-deployment.yaml
 kubectl apply -f k8s/frontend-deployment.yaml
+
+# 4. Ingress (Routage Externe)
+kubectl apply -f k8s/ingress.yaml
 ```
 
-### 3. Vérification
-Vérifiez que les Pods sont en statut `Running` :
-```powershell
-kubectl get pods
+### 3. Configuration DNS (Indispensable !)
+Pour que l'adresse `loup-garou.local` fonctionne, vous devez l'ajouter à votre fichier hosts.
+
+**Windows** (`C:\Windows\System32\drivers\etc\hosts`) :
+Ouvrez le fichier en Administrateur et ajoutez :
+```text
+127.0.0.1 loup-garou.local
 ```
 
 ### 4. Accès au jeu
-Une fois les pods lancés, accédez au jeu sur :
-👉 **[http://localhost:30080](http://localhost:30080)**
+Rendez-vous sur : 👉 **[http://loup-garou.local](http://loup-garou.local)**
 
-> [!NOTE]
-> Le frontend est configuré pour détecter automatiquement le cluster et se connectera au backend via le port **30001**.
+(Le trafic sera automatiquement redirigé vers le frontend ou le backend selon besoin).
 
 ## 🧹 Nettoyage
-Pour tout supprimer :
 ```powershell
 kubectl delete -f k8s/
 ```

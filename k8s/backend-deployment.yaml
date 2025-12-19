@@ -25,17 +25,3 @@ spec:
           value: "production"
         - name: MONGODB_URI
           value: "mongodb://mongo:27017/loup-garou"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: backend
-spec:
-  selector:
-    app: backend
-  ports:
-    - protocol: TCP
-      port: 3001
-      targetPort: 3001
-      nodePort: 30001
-  type: NodePort
