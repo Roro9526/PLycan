@@ -7,6 +7,30 @@ metadata:
     nginx.ingress.kubernetes.io/websocket-services: "backend"
 spec:
   rules:
+  - host: loup-garou.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 80
+      - path: /socket.io
+        pathType: Prefix
+        backend:
+          service:
+            name: backend
+            port:
+              number: 3001
+      - path: /leaderboard
+        pathType: Prefix
+        backend:
+          service:
+            name: backend
+            port:
+              number: 3001
   - http:
       paths:
       - path: /
