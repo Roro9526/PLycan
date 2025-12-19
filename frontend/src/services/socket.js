@@ -7,9 +7,17 @@ const getServerUrl = () => {
         return import.meta.env.VITE_SERVER_URL;
     }
 
-    // Sinon, utiliser le même hôte que le frontend mais sur le port 3001
+    // Sinon, utiliser le même hôte que le frontend
     const hostname = window.location.hostname;
     const protocol = window.location.protocol;
+    const port = window.location.port;
+
+    // Si on est sur le port 30080 (K8s), le backend est probablement sur 30001
+    if (port === '30080') {
+        return `${protocol}//${hostname}:30001`;
+    }
+
+    // Par défaut (Docker/Local), port 3001
     return `${protocol}//${hostname}:3001`;
 };
 
